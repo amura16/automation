@@ -6,7 +6,7 @@ import sys
 
 app = Flask(__name__)
 
-@app.route('/', methods=['get'])
+@app.route('/scrap', methods=['get'])
 def scrap():
     def get_comments(submission):
         comments = []
@@ -72,8 +72,9 @@ def scrap():
         )
     except Exception as e:
         print(f"error: {e}")
-    
-    subreddit_name = "".join([submission.subreddit.display_name for submission in reddit.subreddit("all").hot(limit=10)][:1])
+
+    data = request.get_json()
+    subreddit_name = str(data.get('subreddit'))
     subreddit = reddit.subreddit(subreddit_name)
     
     # get hot reddit posts
