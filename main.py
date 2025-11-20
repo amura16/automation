@@ -74,7 +74,7 @@ def scrap():
         print(f"error: {e}")
 
     data = request.get_json()
-    subreddit_name = data.get('subreddit')
+    subreddit_name = data.get('subreddit', 'movies')
     subreddit = reddit.subreddit(str(subreddit_name))
     
     # get hot reddit posts
