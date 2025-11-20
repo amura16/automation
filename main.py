@@ -1,6 +1,7 @@
 from flask import Flask, jsonify
 import praw
 from pymongo import MongoClient
+import asyncio
 
 app = Flask(__name__)
 
@@ -74,50 +75,62 @@ def scrap():
     subreddit = reddit.subreddit("all")
 
     # get hot reddit posts
+
     hot_sub_posts = []
     hot_subreddits = set()
-    for submission in subreddit.hot(limit=10):
-        if len(hot_subreddits) < 2:
-            if submission:
-                hot_subreddits.add(str(submission.subreddit))
+    async def get_hot_submissions():
+        for submission in subreddit.hot(limit=10):
+            if len(hot_subreddits) < 2:
+                if submission:
+                    hot_subreddits.add(str(submission.subreddit))
+                else:
+                    break
             else:
                 break
-        else:
-            break
+        
 
-    for subreddit_name in hot_subreddits:
-        subreddit = reddit.subreddit(subreddit_name)
-        submissions_list = []
-        for submission in subreddit.hot(limit=5):
-            post_data = get_post(sort_type="hot", submission=submission, get_comments=get_comments)
-            submissions_list.append(post_data)
-        for submission in subreddit.top(limit=5):
-            post_data = get_post(sort_type="top", submission=submission, get_comments=get_comments)
-            submissions_list.append(post_data)
-        hot_sub_posts.extend(submissions_list)
+            for subreddit_name in hot_subreddits:
+                subreddit = reddit.subreddit(subreddit_name)
+                submissions_list = []
+                for submission in subreddit.hot(limit=5):
+                    post_data = get_post(sort_type="hot", submission=submission, get_comments=get_comments)
+                    submissions_list.append(post_data)
+                for submission in subreddit.top(limit=5):
+                    post_data = get_post(sort_type="top", submission=submission, get_comments=get_comments)
+                    submissions_list.append(post_data)
+                hot_sub_posts.extend(submissions_list)
 
     # get top reddit posts
     top_sub_posts = []
     top_subreddits = set()
-    for submission in subreddit.top(limit=10):
-        if len(top_subreddits) < 2:
-            if submission:
-                top_subreddits.add(str(submission.subreddit))
+    async def get_top_submissions():
+        for submission in subreddit.top(limit=10):
+            if len(top_subreddits) < 2:
+                if submission:
+                    top_subreddits.add(str(submission.subreddit))
+                else:
+                    break
             else:
                 break
-        else:
-            break
 
-    for subreddit_name in top_subreddits:
-        subreddit = reddit.subreddit(subreddit_name)
-        submissions_list = []
-        for submission in subreddit.hot(limit=5):
-            post_data = get_post(sort_type="hot", submission=submission, get_comments=get_comments)
-            submissions_list.append(post_data)
-        for submission in subreddit.top(limit=5):
-            post_data = get_post(sort_type="top", submission=submission, get_comments=get_comments)
-            submissions_list.append(post_data)
-        top_sub_posts.extend(submissions_list)
+        for subreddit_name in top_subreddits:
+            subreddit = reddit.subreddit(subreddit_name)
+            submissions_list = []
+            for submission in subreddit.hot(limit=5):
+                post_data = get_post(sort_type="hot", submission=submission, get_comments=get_comments)
+                submissions_list.append(post_data)
+            for submission in subreddit.top(limit=5):
+                post_data = get_post(sort_type="top", submission=submission, get_comments=get_comments)
+                submissions_list.append(post_data)
+            top_sub_posts.extend(submissions_list)
+
+    async def main_get_submission():
+        await asyncio.gather(
+            get_top_submissions(),
+            get_hot_submissions()
+        )
+        
+    asyncio.run(main_get_submission())
 
     # combine all posts
     all_posts_data = hot_sub_posts + top_sub_posts
