@@ -8,6 +8,8 @@ app = Flask(__name__)
 
 @app.route('/scrap', methods=['POST'])
 def scrap():
+    data = request.get_json(force=True, silent=True)
+    subreddit_name = data.get('subreddit', 'movies')
     def get_comments(submission):
         comments = []
         try:
@@ -73,8 +75,7 @@ def scrap():
     except Exception as e:
         print(f"error: {e}")
 
-    data = request.get_json()
-    subreddit_name = data.get('subreddit', 'movies')
+    
     subreddit = reddit.subreddit(str(subreddit_name))
     
     # get hot reddit posts
