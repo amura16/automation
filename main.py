@@ -6,7 +6,7 @@ import sys
 
 app = Flask(__name__)
 
-@app.route('/scrap', methods=['post'])
+@app.route('/scrap', methods=['POST'])
 def scrap():
     def get_comments(submission):
         comments = []
@@ -74,8 +74,8 @@ def scrap():
         print(f"error: {e}")
 
     data = request.get_json()
-    subreddit_name = str(data.get('subreddit'))
-    subreddit = reddit.subreddit(subreddit_name)
+    subreddit_name = data.get('subreddit')
+    subreddit = reddit.subreddit(str(subreddit_name))
     
     # get hot reddit posts
     
