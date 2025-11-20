@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import praw
 from pymongo import MongoClient
 import asyncio
@@ -8,8 +8,8 @@ app = Flask(__name__)
 
 @app.route('/scrap', methods=['POST'])
 def scrap():
-    data = request.get_json(force=True, silent=True)
-    subreddit_name = data.get('subreddit', 'movies')
+    data = request.get_json()
+    subreddit_name = data.get('subreddit')
     def get_comments(submission):
         comments = []
         try:
