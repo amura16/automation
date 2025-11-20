@@ -2,10 +2,13 @@ from flask import Flask, jsonify
 import praw
 from pymongo import MongoClient
 import asyncio
+import sys
 
 app = Flask(__name__)
 
-def get_comments(submission):
+@app.route('/')
+def scrap():
+    def get_comments(submission):
     comments = []
     try:
         submission.comments.replace_more(limit=0)
@@ -52,99 +55,46 @@ def get_post(sort_type, submission, get_comments):
         "comments": get_comments(submission)
     }
 
-@app.route('/')
-def scrap():
-    # authentication reddit
-    client_id = "RiaZSGXrAfcvd-nBZR0fiQ"
-    client_secret = "Ma5FAfGIpS4dr56crDKB-s14pClZVg"
-    user_agent = "python:scrap:v1.0 (by /u/No-Flan6855)"
-    username = "No-Flan6855"
-    password = "roddytanjakaReddit#"
+# authentication reddit
+client_id = "RiaZSGXrAfcvd-nBZR0fiQ"
+client_secret = "Ma5FAfGIpS4dr56crDKB-s14pClZVg"
+user_agent = "python:scrap:v1.0 (by /u/No-Flan6855)"
+username = "No-Flan6855"
+password = "roddytanjakaReddit#"
 
-    try:
-        reddit = praw.Reddit(
-            client_id=client_id,
-            client_secret=client_secret,
-            user_agent=user_agent,
-            username=username,
-            password=password
-        )
-    except Exception as e:
-        print(f"error: {e}")
+try:
+    reddit = praw.Reddit(
+        client_id=client_id,
+        client_secret=client_secret,
+        user_agent=user_agent,
+        username=username,
+        password=password
+    )
+except Exception as e:
+    print(f"error: {e}")
 
-    subreddit = reddit.subreddit("all")
+subreddit_name = "".join([submission.subreddit.display_name for submission in reddit.subreddit("all").hot(limit=10)][:1])
+subreddit = reddit.subreddit(subreddit_name)
 
-    # get hot reddit posts
+# get hot reddit posts
 
-    hot_sub_posts = []
-    hot_subreddits = set()
-    async def get_hot_submissions():
-        for submission in subreddit.hot(limit=10):
-            if len(hot_subreddits) < 2:
-                if submission:
-                    hot_subreddits.add(str(submission.subreddit))
-                else:
-                    break
-            else:
-                break
-        
+hot_sub_posts = []
+hot_subreddits = set()
+submissions_list = []
+for submission in subreddit.hot(limit=5):
+    post_data = get_post(sort_type="hot", submission=submission, get_comments=get_comments)
+    submissions_list.append(post_data)
+for submission in subreddit.top(limit=5):
+    post_data = get_post(sort_type="top", submission=submission, get_comments=get_comments)
+    submissions_list.append(post_data)
+hot_sub_posts.extend(submissions_list)
 
-            for subreddit_name in hot_subreddits:
-                subreddit = reddit.subreddit(subreddit_name)
-                submissions_list = []
-                for submission in subreddit.hot(limit=5):
-                    post_data = get_post(sort_type="hot", submission=submission, get_comments=get_comments)
-                    submissions_list.append(post_data)
-                for submission in subreddit.top(limit=5):
-                    post_data = get_post(sort_type="top", submission=submission, get_comments=get_comments)
-                    submissions_list.append(post_data)
-                hot_sub_posts.extend(submissions_list)
 
-    # get top reddit posts
-    top_sub_posts = []
-    top_subreddits = set()
-    async def get_top_submissions():
-        for submission in subreddit.top(limit=10):
-            if len(top_subreddits) < 2:
-                if submission:
-                    top_subreddits.add(str(submission.subreddit))
-                else:
-                    break
-            else:
-                break
+# combine all posts
+all_posts_data = hot_sub_posts
+print(f"Total French posts scraped: {len(all_posts_data)}")
 
-        for subreddit_name in top_subreddits:
-            subreddit = reddit.subreddit(subreddit_name)
-            submissions_list = []
-            for submission in subreddit.hot(limit=5):
-                post_data = get_post(sort_type="hot", submission=submission, get_comments=get_comments)
-                submissions_list.append(post_data)
-            for submission in subreddit.top(limit=5):
-                post_data = get_post(sort_type="top", submission=submission, get_comments=get_comments)
-                submissions_list.append(post_data)
-            top_sub_posts.extend(submissions_list)
 
-    async def main_get_submission():
-        await asyncio.gather(
-            get_top_submissions(),
-            get_hot_submissions()
-        )
-        
-    asyncio.run(main_get_submission())
 
-    # combine all posts
-    all_posts_data = hot_sub_posts + top_sub_posts
-    print(f"Total French posts scraped: {len(all_posts_data)}")
-
-    # connection to Mongodb
-    client = MongoClient("mongodb+srv://rdadmin:Apxve39YlrOEWG6@57.129.18.234:27017/redditdatascrape?authSource=redditdatascrape")
-    db = client["redditdatascrape"]
-    collection = db["reddit_data"]
-
-    if all_posts_data:
-        collection.insert_many(all_posts_data)
-        print(f"Successfully inserted {len(all_posts_data)} posts into MongoDB.")
-    else:
-        print("No posts to insert.")
-
-    return jsonify({"result": "succesfully achieved"})
+sys.stdout.reconfigure(encoding='utf-8')
+return jsonify(all_posts_data)
