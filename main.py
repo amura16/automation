@@ -6,7 +6,7 @@ import sys
 
 app = Flask(__name__)
 
-@app.route('/scrap', methods=['get'])
+@app.route('/scrap', methods=['post'])
 def scrap():
     def get_comments(submission):
         comments = []
