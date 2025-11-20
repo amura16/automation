@@ -1,0 +1,5 @@
+praw
+pymongo
+pandas 
+asyncio
+flask
