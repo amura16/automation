@@ -6,7 +6,7 @@ import sys
 
 app = Flask(__name__)
 
-@app.route('/')
+@app.route('/', methods=['get'])
 def scrap():
     def get_comments(submission):
     comments = []
@@ -41,60 +41,60 @@ def scrap():
     except:
         return []
 
-def get_post(sort_type, submission, get_comments):
-    return {
-        "id": submission.id,
-        "title": submission.title,
-        "text": submission.selftext,
-        "author": str(submission.author), # Convert Redditor object to string
-        "score": submission.score,
-        "created_utc": submission.created_utc,
-        "num_comments": submission.num_comments,
-        "subreddit": str(submission.subreddit), # Convert Subreddit object to string
-        "sort_type": sort_type,
-        "comments": get_comments(submission)
-    }
-
-# authentication reddit
-client_id = "RiaZSGXrAfcvd-nBZR0fiQ"
-client_secret = "Ma5FAfGIpS4dr56crDKB-s14pClZVg"
-user_agent = "python:scrap:v1.0 (by /u/No-Flan6855)"
-username = "No-Flan6855"
-password = "roddytanjakaReddit#"
-
-try:
-    reddit = praw.Reddit(
-        client_id=client_id,
-        client_secret=client_secret,
-        user_agent=user_agent,
-        username=username,
-        password=password
-    )
-except Exception as e:
-    print(f"error: {e}")
-
-subreddit_name = "".join([submission.subreddit.display_name for submission in reddit.subreddit("all").hot(limit=10)][:1])
-subreddit = reddit.subreddit(subreddit_name)
-
-# get hot reddit posts
-
-hot_sub_posts = []
-hot_subreddits = set()
-submissions_list = []
-for submission in subreddit.hot(limit=5):
-    post_data = get_post(sort_type="hot", submission=submission, get_comments=get_comments)
-    submissions_list.append(post_data)
-for submission in subreddit.top(limit=5):
-    post_data = get_post(sort_type="top", submission=submission, get_comments=get_comments)
-    submissions_list.append(post_data)
-hot_sub_posts.extend(submissions_list)
-
-
-# combine all posts
-all_posts_data = hot_sub_posts
-print(f"Total French posts scraped: {len(all_posts_data)}")
-
-
-
-sys.stdout.reconfigure(encoding='utf-8')
-return jsonify(all_posts_data)
+    def get_post(sort_type, submission, get_comments):
+        return {
+            "id": submission.id,
+            "title": submission.title,
+            "text": submission.selftext,
+            "author": str(submission.author), # Convert Redditor object to string
+            "score": submission.score,
+            "created_utc": submission.created_utc,
+            "num_comments": submission.num_comments,
+            "subreddit": str(submission.subreddit), # Convert Subreddit object to string
+            "sort_type": sort_type,
+            "comments": get_comments(submission)
+        }
+    
+    # authentication reddit
+    client_id = "RiaZSGXrAfcvd-nBZR0fiQ"
+    client_secret = "Ma5FAfGIpS4dr56crDKB-s14pClZVg"
+    user_agent = "python:scrap:v1.0 (by /u/No-Flan6855)"
+    username = "No-Flan6855"
+    password = "roddytanjakaReddit#"
+    
+    try:
+        reddit = praw.Reddit(
+            client_id=client_id,
+            client_secret=client_secret,
+            user_agent=user_agent,
+            username=username,
+            password=password
+        )
+    except Exception as e:
+        print(f"error: {e}")
+    
+    subreddit_name = "".join([submission.subreddit.display_name for submission in reddit.subreddit("all").hot(limit=10)][:1])
+    subreddit = reddit.subreddit(subreddit_name)
+    
+    # get hot reddit posts
+    
+    hot_sub_posts = []
+    hot_subreddits = set()
+    submissions_list = []
+    for submission in subreddit.hot(limit=5):
+        post_data = get_post(sort_type="hot", submission=submission, get_comments=get_comments)
+        submissions_list.append(post_data)
+    for submission in subreddit.top(limit=5):
+        post_data = get_post(sort_type="top", submission=submission, get_comments=get_comments)
+        submissions_list.append(post_data)
+    hot_sub_posts.extend(submissions_list)
+    
+    
+    # combine all posts
+    all_posts_data = hot_sub_posts
+    print(f"Total French posts scraped: {len(all_posts_data)}")
+    
+    
+    
+    sys.stdout.reconfigure(encoding='utf-8')
+    return jsonify(all_posts_data)
