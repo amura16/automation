@@ -9,37 +9,37 @@ app = Flask(__name__)
 @app.route('/', methods=['get'])
 def scrap():
     def get_comments(submission):
-    comments = []
-    try:
-        submission.comments.replace_more(limit=0)
-        for comment in submission.comments:
-            replies = []
-            if len(comment.replies) > 0:
-                comment.replies.replace_more(limit=0)
-                for reply in comment.replies:
-                    replies.append({
-                        "id": reply.id,
-                        "author": str(reply.author), # Convert Redditor object to string
-                        "created_utc": reply.created_utc,
-                        "score": reply.score,
-                        "body": reply.body
+        comments = []
+        try:
+            submission.comments.replace_more(limit=0)
+            for comment in submission.comments:
+                replies = []
+                if len(comment.replies) > 0:
+                    comment.replies.replace_more(limit=0)
+                    for reply in comment.replies:
+                        replies.append({
+                            "id": reply.id,
+                            "author": str(reply.author), # Convert Redditor object to string
+                            "created_utc": reply.created_utc,
+                            "score": reply.score,
+                            "body": reply.body
+                        })
+    
+                    replies = sorted(replies, key=lambda x: x["score"], reverse=True)[:5]
+                    comments.append({
+                        "id": comment.id,
+                        "author": str(comment.author), # Convert Redditor object to string
+                        "created_utc": comment.created_utc,
+                        "score": comment.score,
+                        "body": comment.body,
+                        "replies": replies
                     })
-
-                replies = sorted(replies, key=lambda x: x["score"], reverse=True)[:5]
-                comments.append({
-                    "id": comment.id,
-                    "author": str(comment.author), # Convert Redditor object to string
-                    "created_utc": comment.created_utc,
-                    "score": comment.score,
-                    "body": comment.body,
-                    "replies": replies
-                })
-
-        comments = sorted(comments, key=lambda x: x["score"], reverse=True)[: (20 if len(comments)>20 else len(comments))]
-        return comments
-
-    except:
-        return []
+    
+            comments = sorted(comments, key=lambda x: x["score"], reverse=True)[: (20 if len(comments)>20 else len(comments))]
+            return comments
+    
+        except:
+            return []
 
     def get_post(sort_type, submission, get_comments):
         return {
