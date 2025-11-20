@@ -137,7 +137,7 @@ def scrap():
     print(f"Total French posts scraped: {len(all_posts_data)}")
 
     # connection to Mongodb
-    client = MongoClient("mongodb://rdadmin:Apxve39YlrOEWG6@57.129.18.234:27017/redditdatascrape?authSource=redditdatascrape")
+    client = MongoClient("mongodb+srv://rdadmin:Apxve39YlrOEWG6@57.129.18.234:27017/redditdatascrape?authSource=redditdatascrape")
     db = client["redditdatascrape"]
     collection = db["reddit_data"]
 
