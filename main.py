@@ -83,11 +83,8 @@ def scrap():
     hot_sub_posts = []
     hot_subreddits = set()
     submissions_list = []
-    for submission in subreddit.hot(limit=5):
+    for submission in subreddit.hot(limit=10):
         post_data = get_post(sort_type="hot", submission=submission, get_comments=get_comments)
-        submissions_list.append(post_data)
-    for submission in subreddit.top(limit=5):
-        post_data = get_post(sort_type="top", submission=submission, get_comments=get_comments)
         submissions_list.append(post_data)
     hot_sub_posts.extend(submissions_list)
     
@@ -98,5 +95,5 @@ def scrap():
     
     
     
-    sys.stdout.reconfigure(encoding='utf-8')
+    # sys.stdout.reconfigure(encoding='utf-8')
     return jsonify(all_posts_data)
