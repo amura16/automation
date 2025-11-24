@@ -99,7 +99,9 @@ def scrap():
     return jsonify(all_posts_data)
 
 
-app.route('/cluster', methods=['POST'])
+
+
+@app.route('/cluster', methods=['POST'])
 def cluster():
   # cleaning text data post
   def clean_text(text):
@@ -124,12 +126,9 @@ def cluster():
     text = text.translate(str.maketrans('', '', string.punctuation))
     text = re.sub(r'\s+', ' ', text).strip()
     return text
-
-
   def clean_comments_list(comments_list):
     if not isinstance(comments_list, list):
       return comments_list
-
     cleaned_comments = []
     for comment_dict in comments_list:
       if isinstance(comment_dict, dict):
@@ -141,7 +140,6 @@ def cluster():
       cleaned_comments.append(comment_dict)
     return cleaned_comments
 
-
   # prepare before sending to LLM
   def format_data(df):
     id_list = list(df['id'])
@@ -150,14 +148,12 @@ def cluster():
     comments = list(df['comments'])
     COMMENT_REPLY_SEPARATOR = " / "
     data_post = {}
-
     for i in range(len(id_list)):
       current_id = id_list[i]
       # guard against NaN or None values in title/text
       t = "" if pd.isna(title[i]) else str(title[i])
       b = "" if pd.isna(text[i]) else str(text[i])
       data_text = (t + " " + b).strip()
-
       processed_comments_parts = []
       if comments[i]:
         for comment in comments[i]:
@@ -177,16 +173,16 @@ def cluster():
         'text': data_text,
         'comments': final_comments_string
       }
-
     return data_post
 
-
-  async def get_summary(data={}, results = [], model="mistralai/mistral-7b-instruct", api_key="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"):
+  async def get_summary(data=None, results=None, model="mistralai/mistral-7b-instruct", api_key="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"):
     prompt ="""
       remove all unecessary words and resume this reddit post in one clear text by analyzing the data I'll give you.
       Don't say anything else but translate the resume in french and just give me the result of the resume in format: {"id":"...", "resume":"..."};
       The data:
     """
+    data = data or {}
+    results = results or []
     for key, value in data.items():
       try:
         response = requests.post(
@@ -224,7 +220,7 @@ def cluster():
         results.append({"id": data[key].get('id') if isinstance(data.get(key, {}), dict) else key, "error": str(e)})
 
 
-  async def get_cluster(data, results = [], model="mistralai/mistral-7b-instruct", api_key="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"):
+  async def get_cluster(data, results=None, model="mistralai/mistral-7b-instruct", api_key="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"):
     prompt ="""
     Tu es un expert en data science spécialisé en clustering sémantique de textes courts.
 
@@ -262,6 +258,7 @@ def cluster():
     Voici la liste des résumés, sous la forme :
 
     """
+    results = results or []
     response = requests.post(
       url="https://api.openrouter.ai/v1/chat/completions",
       headers={
@@ -305,6 +302,10 @@ def cluster():
 
   # add cluster results in dataframe
   def add_results_cluster(df, cluster_results):
+    # cluster_results is expected to be a list where index 0 contains the API result
+    if not cluster_results or not isinstance(cluster_results[0], dict) or 'clusters' not in cluster_results[0]:
+      print("add_results_cluster: no valid cluster results to add")
+      return
     for cluster in cluster_results[0]['clusters']:
       cluster_id = cluster['cluster_id']
       cluster_title = cluster['title']
@@ -317,8 +318,12 @@ def cluster():
         df.loc[df['id'] == item_id, 'keywords'] = keywords
 
   # preparing data to insert into mongodb
-  def prepare_insert(df):
-    clusters = df[0]['clusters']
+  def prepare_insert(cluster_results):
+    # cluster_results is expected to be a list where index 0 contains the API result
+    if not cluster_results or not isinstance(cluster_results[0], dict) or 'clusters' not in cluster_results[0]:
+      print("prepare_insert: no cluster results to prepare")
+      return []
+    clusters = cluster_results[0]['clusters']
     rows = []
     for cluster in clusters:
       cluster_id = cluster['cluster_id']
@@ -388,4 +393,15 @@ def cluster():
   cluster_top_data = pd.DataFrame(prepare_insert(top_cluster_results))
   cluster_top_data = cluster_top_data.merge(top_data[['id', 'summary', 'created_utc', 'sort_type']], on='id', how='left')
 
-  return jsonify(cluster_hot_data)
+  # convert DataFrames to JSON-serializable records before returning
+  try:
+    hot_records = cluster_hot_data.to_dict(orient='records') if not cluster_hot_data.empty else []
+  except Exception:
+    hot_records = []
+
+  try:
+    top_records = cluster_top_data.to_dict(orient='records') if not cluster_top_data.empty else []
+  except Exception:
+    top_records = []
+
+  return jsonify({"hot": hot_records, "top": top_records})
