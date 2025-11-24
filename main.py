@@ -3,6 +3,11 @@ import praw
 from pymongo import MongoClient
 import asyncio
 import sys
+import pandas as pd
+import requests
+import json
+import string
+import re
 
 app = Flask(__name__)
 
