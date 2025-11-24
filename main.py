@@ -370,8 +370,8 @@ def cluster():
   top_summary = []
   async def main():
     await asyncio.gather(
-      get_summary(data=hot_post, results=hot_summary, model="openrouter/sherlock-dash-alpha", api_key="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"),
-      get_summary(data=top_post, results=top_summary, model="openrouter/sherlock-dash-alpha", api_key="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")
+      get_summary(data=hot_post, results=hot_summary, model="openai/gpt-oss-20b:free", api_key="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"),
+      get_summary(data=top_post, results=top_summary, model="openai/gpt-oss-20b:free", api_key="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")
     )
   asyncio.run(main())
   add_resume(hot_data, hot_summary)
@@ -385,8 +385,8 @@ def cluster():
   async def main_cluster():
     # await both clustering tasks
     await asyncio.gather(
-      get_cluster(data=hot_pre_cluster, results=hot_cluster_results, model="openai/gpt-oss-120b", api_key="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"),
-      get_cluster(data=top_pre_cluster, results=top_cluster_results, model="mistralai/mistral-7b-instruct", api_key="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")
+      get_cluster(data=hot_pre_cluster, results=hot_cluster_results, model="openai/gpt-oss-20b:free", api_key="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"),
+      get_cluster(data=top_pre_cluster, results=top_cluster_results, model="openai/gpt-oss-20b:free", api_key="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")
     )
   asyncio.run(main_cluster())
 
