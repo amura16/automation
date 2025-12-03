@@ -4,3 +4,7 @@ pymongo
 pandas 
 flask
 requests
+flask-cors
+requests
+openai
+faulthandler
