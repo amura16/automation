@@ -434,7 +434,7 @@ CORS(app)
 BASE_URL = "https://www.agent-ia-supportpresta.omega-connect.com"
 API_KEY = "4BC8AHKVG3RB5K3AH2DK82SL5SQMJB9H"
 
-openai.api_key = "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"
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # prompt 
 instructions_systemes_search = """
