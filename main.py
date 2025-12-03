@@ -1,22 +1,33 @@
-import json
+# utf-8
+# -*- coding: utf-8 -*-
+import sys
 import traceback
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
-import openai
-import sys
-import os
-# Rediriger les erreurs vers stdout pour les logs Apache
+import json
+from openai import OpenAI
+
+
+
 sys.stderr = sys.stdout
 
 app = Flask(__name__)
 app.config['DEBUG'] = True
 app.config['PROPAGATE_EXCEPTIONS'] = True
 
+CORS(app)
+
 BASE_URL = "https://www.agent-ia-supportpresta.omega-connect.com"
 API_KEY = "4BC8AHKVG3RB5K3AH2DK82SL5SQMJB9H"
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# openai.api_key = "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"
+client_openai = OpenAI(
+    base_url="https://router.huggingface.co/v1",
+    api_key="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",
+)
+
+
 
 # prompt 
 instructions_systemes_search = """
@@ -359,11 +370,12 @@ def generate_sql(client, instructions, user_question):
     print("\n\nprompt:", user_question, "\n\n")
 
     try:
+
         response = client.chat.completions.create(
-            model="gpt-4.1-mini",
+            model="moonshotai/Kimi-K2-Instruct-0905",
             messages=[
-                {"role": "system", "content": instructions},
-                {"role": "user", "content": prompt},
+                    {"role": "system", "content": instructions},
+                    {"role": "user", "content": prompt},
             ]
         )
 
@@ -420,12 +432,13 @@ def generate_final_answer(client, question, data, instructions):
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4.1-mini",
+            model="moonshotai/Kimi-K2-Instruct-0905",
             messages=[
-                {"role": "system", "content": instructions},
-                {"role": "user", "content": prompt}
+                    {"role": "system", "content": instructions},
+                    {"role": "user", "content": prompt},
             ]
         )
+
         return response.choices[0].message.content
     except Exception as e:
         print("❌ Erreur génération réponse LLM :", e)
@@ -437,15 +450,14 @@ def chatbot():
     request_user = request.get_json()
     user_input = request_user.get("input", "")
 
-    request_data = generate_sql(openai, instructions_systemes_search, user_input)
+    request_data = generate_sql(client_openai, instructions_systemes_search, user_input)
     print("Requêtes générées :", request_data)
 
     results = fetch_all_data(BASE_URL, request_data.get("requests"))
 
-    OpenaiResponse = generate_final_answer(openai, user_input, results, instructions_reponses)
+    OpenaiResponse = generate_final_answer(client_openai, user_input, results, instructions_reponses)
 
     return jsonify({"reponses": OpenaiResponse})
-
 
 
 if __name__ == "__main__":
