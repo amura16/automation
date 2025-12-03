@@ -5,6 +5,7 @@ from flask_cors import CORS
 import requests
 import openai
 import sys
+import os
 # Rediriger les erreurs vers stdout pour les logs Apache
 sys.stderr = sys.stdout
 
