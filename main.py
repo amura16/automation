@@ -8,8 +8,6 @@ import requests
 import json
 import string
 import re
-import faulthandler
-faulthandler.enable()
 import traceback
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -420,7 +418,6 @@ def cluster():
 
 
 
-sys.stderr = open("/error_capture.log", "a")
 
 #raise RuntimeError("TEST ERREUR FLASK MOD_WSGI")
 
@@ -867,10 +864,6 @@ def chatbot():
 
     return jsonify({"reponses": OpenaiResponse})
 
-
-@app.errorhandler(500)
-def internal_error(error):
-    return "<pre>" + traceback.format_exc() + "</pre>", 500
 
 
 if __name__ == "__main__":
