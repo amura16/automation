@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 import openai
+import sys
 # Rediriger les erreurs vers stdout pour les logs Apache
 sys.stderr = sys.stdout
 
