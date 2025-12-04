@@ -123,11 +123,8 @@ Ne jamais inventer de table ou colonne.
     (exemple: si l'utilisateur demande l'état de sa commande, tu dois donner la date, le nom du produit, l'id client, l'id commande, etc)
     Il faut que l'utilisateur aie des réponses détaillés et précis.
 
-    Obligation stricte: interdiction de UPDATE, DELETE, INSERT
+    interdiction de faire UPDATE, DELETE, INSERT
 
-    Obligaton stricte: Interdit d'inventer des colonnes qui ne sont pas dans la liste
-
-    Obligation stricte: La requête SQL doit toujours étre correct et bien executbable sans erreur
 
 3. Sécurité:
 
@@ -145,7 +142,7 @@ Ne jamais inventer de table ou colonne.
 
     La requête doit être sécurisée, correcte et cohérente avec la demande utilisateur.
 
-    Toujours vérifier que la requête fonctionne même si les colonnes supplémentaires n’existent pas.
+    Ne jamais invneter de colonne et vérifier que la requête fonctionne.
 """
 
 
