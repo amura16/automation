@@ -11,6 +11,7 @@ import requests
 import json
 from google import genai
 import re
+import os
 
 sys.stderr = open("/error_capture.log", "a")
 
