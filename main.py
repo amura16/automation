@@ -5,13 +5,16 @@ import faulthandler
 faulthandler.enable()
 
 import traceback
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import requests
 import json
 from google import genai
 import re
-import os
+
+sys.stderr = open("/error_capture.log", "a")
+
+
 
 sys.stderr = sys.stdout
 
@@ -120,6 +123,12 @@ Ne jamais inventer de table ou colonne.
     (exemple: si l'utilisateur demande l'état de sa commande, tu dois donner la date, le nom du produit, l'id client, l'id commande, etc)
     Il faut que l'utilisateur aie des réponses détaillés et précis.
 
+    Obligation stricte: interdiction de UPDATE, DELETE, INSERT
+
+    Obligaton stricte: Interdit d'inventer des colonnes qui ne sont pas dans la liste
+
+    Obligation stricte: La requête SQL doit toujours étre correct et bien executbable sans erreur
+
 3. Sécurité:
 
     Pas de valeurs directes dans la requête → toujours :param.
@@ -129,8 +138,6 @@ Ne jamais inventer de table ou colonne.
     Collecte maximale de données pertinentes
 
     la requête doit toujours être SELECT
-
-    interdiction de UPDATE, DELETE, INSERT
 
 4.Objectif final
 
@@ -206,6 +213,14 @@ def tables_finder(client, instructions, user_question):
         )
 
         print(response.text)
+
+        # response = client.chat.completions.create(
+        #     model="moonshotai/Kimi-K2-Instruct-0905",
+        #     messages=[
+        #         {"role": "system", "content": instructions},
+        #         {"role": "user", "content": search_prompt},
+        #     ]
+        # )
 
         content = response.text.strip()
         content = clean_json_string(content)
@@ -307,8 +322,10 @@ def generate_final_answer(client, question, data, instructions):
 
 @app.route("/chatbot", methods=["POST"])
 def chatbot():
-    request_user = request.get_json()
-    user_input = request_user.get("input", "")
+    # request_user = request.get_json()
+    # user_input = request_user.get("input", "")
+
+    user_input = request.form.get("input", "")
 
     table_fields = tables_finder(client, instructions_system, user_input)
 
@@ -318,8 +335,15 @@ def chatbot():
     
     reponseFinale = generate_final_answer(client, user_input, php_response, instructions_system_reponse)
 
-    return jsonify({"reponses": reponseFinale})
+    # return jsonify({"reponses": {
+    #     "tables": table_fields,
+    #     "requetes": requetes,
+    #     "data_php": php_response,
+    #     "reponse_finale": reponseFinale
+    # }
+    # })
 
+    return jsonify({"reponses": reponseFinale})
 
 @app.errorhandler(500)
 def internal_error(error):
