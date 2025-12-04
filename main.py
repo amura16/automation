@@ -28,7 +28,7 @@ CORS(app)
 BASE_URL = "https://www.agent-ia-supportpresta.omega-connect.com"
 API_KEY = "4BC8AHKVG3RB5K3AH2DK82SL5SQMJB9H"
 
-key = os.environ["OPENAI_API_KEY"]
+key = os.environ["API_KEY"]
 # client = genai.Client(api_key="AIzaSyDSgNUQke1A6QRkaahNSrpqVvJNo2RV5cA") 
 client = genai.Client(api_key=key) 
 
