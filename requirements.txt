@@ -3,6 +3,7 @@ flask
 requests
 flask-cors
 requests
-openai
+google-genai
+
 
 
