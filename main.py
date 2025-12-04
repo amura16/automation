@@ -11,11 +11,8 @@ import requests
 import json
 from google import genai
 import re
+from dotenv import load_dotenv
 import os
-
-sys.stderr = open("/error_capture.log", "a")
-
-
 
 sys.stderr = sys.stdout
 
@@ -28,7 +25,9 @@ CORS(app)
 BASE_URL = "https://www.agent-ia-supportpresta.omega-connect.com"
 API_KEY = "4BC8AHKVG3RB5K3AH2DK82SL5SQMJB9H"
 
-key = os.environ["API_KEY"]
+load_dotenv()  # lit le fichier .env
+key = os.getenv("API_KEY")
+
 # client = genai.Client(api_key="AIzaSyDSgNUQke1A6QRkaahNSrpqVvJNo2RV5cA") 
 client = genai.Client(api_key=key) 
 
