@@ -13,8 +13,6 @@ from google import genai
 import re
 
 
-
-
 sys.stderr = sys.stdout
 
 app = Flask(__name__)
@@ -26,7 +24,7 @@ CORS(app)
 BASE_URL = "https://www.agent-ia-supportpresta.omega-connect.com"
 API_KEY = "4BC8AHKVG3RB5K3AH2DK82SL5SQMJB9H"
 
-client = genai.Client(api_key="AIzaSyDSgNUQke1A6QRkaahNSrpqVvJNo2RV5cA") 
+client = genai.Client(api_key="AIzaSyCkN6zPoPK0v_ExonXlf6HN3V_5Oh3Rkz8") 
 
 # prompt
 
@@ -166,38 +164,38 @@ instructions_system_reponse = """
 
 
 
-def clean_json_string(raw_text):
+
+def clean_json_string(text):
     """
-    Nettoie un texte contenant un JSON entre ``` ou avec des retours à la ligne,
-    et renvoie un dictionnaire Python exploitable.
+    Extrait un bloc JSON valide depuis un texte qui contient 
+    du bruit avant ou après.
     """
-    if not isinstance(raw_text, str):
-        raise ValueError("raw_text doit être une chaîne de caractères")
-
-    # 1️⃣ Supprimer les backticks et éventuel 'json'
-    cleaned = re.sub(r"```(?:json)?\n?", "", raw_text)
-    cleaned = cleaned.replace("```", "")  # Supprime les backticks de fin
-
-    # 2️⃣ Supprimer les retours à la ligne superflus
-    cleaned = cleaned.strip()
-
-    # 3️⃣ Charger le JSON
+    # Trouver le premier { et le dernier }
+    match = re.search(r'\{.*\}', text, flags=re.S)
+    if not match:
+        raise ValueError("Aucun JSON trouvé dans le texte.")
+    
+    json_str = match.group(0)
+    
+    # Tenter de charger le JSON propre
     try:
-        data = json.loads(cleaned)
-        return data
+        return json.loads(json_str)
     except json.JSONDecodeError as e:
-        print("Erreur JSON :", e)
-        return None
+        print("Erreur JSON:", e)
+        raise e
 
 
-def tables_finder(client, instructions, user_question):
+@app.route('/tables', methods=['POST'])
+def tables_finder():
+    user_question = request.get_json()
+    user_input = user_question.get('input')
 
     search_prompt = """
     - Analyse bien la demande utilisateur et choisis bien les tables pour récupérer les données en fonction de la reqûete utilisateur.
     - Voici la demande utilisateur:
     """
     
-    prompt = search_prompt + user_question
+    prompt = search_prompt + user_input 
 
     print("\n\nPrompt envoyé au LLM :", prompt, "\n\n")
 
@@ -205,18 +203,11 @@ def tables_finder(client, instructions, user_question):
         # 1️⃣ APPEL LLM
         response = client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=f"System:{instructions}\nUtilisateur: {prompt}"
+            contents=f"System:{instructions_system}\nUtilisateur: {prompt}"
         )
 
         print(response.text)
 
-        # response = client.chat.completions.create(
-        #     model="moonshotai/Kimi-K2-Instruct-0905",
-        #     messages=[
-        #         {"role": "system", "content": instructions},
-        #         {"role": "user", "content": search_prompt},
-        #     ]
-        # )
 
         content = response.text.strip()
         content = clean_json_string(content)
@@ -224,7 +215,7 @@ def tables_finder(client, instructions, user_question):
 
         # 2️⃣ PARSE DU JSON
         try:
-            json_data = json.loads(content)
+            json_data = content
         except:
             return {"error": "invalid_json", "raw": content}
 
@@ -238,10 +229,14 @@ def tables_finder(client, instructions, user_question):
         try:
             r = requests.post(url, json=payload)
             result = r.json()
+            print(result)
         except Exception as e:
             result = {"success": False, "error": str(e)}
 
-        return result
+        return jsonify({
+            "user_input": user_input,
+            "data_field": [value for key,value in dict(result).items()]
+        })
 
     except Exception as e:
         return {"error": str(e)}
@@ -249,13 +244,19 @@ def tables_finder(client, instructions, user_question):
 
 
 
-def generate_sql(client, instructions, data_field, user_input):
+@app.route('/sql', methods=['POST'])
+def generate_sql():
+    data = request.get_json()
+    data = data.get('input')
+    user_input = data['user_input']
+    data_field = data['data_field']
+
     prompt = f"géneres des requetes sql en fonction de la demanade utilisateur:{user_input} et voici les tables que tu vas consulter: {data_field}"
     try:
         # 1️⃣ APPEL LLM
         response = client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=f"System:{instructions}\nUtilisateur: {prompt}"
+            contents=f"System:{instructions_system_sql}\nUtilisateur: {prompt}"
         )
 
         print(response.text)
@@ -263,13 +264,20 @@ def generate_sql(client, instructions, data_field, user_input):
         content = response.text.strip()
         content = clean_json_string(content)
         print("sql generé: ", content)
-        return content
+        sql_content = content.get('requests')
+        return jsonify({
+            'user_input': user_input,
+            'requests' : sql_content
+        })
     except:
         print("error lors de la generation sql")
 
     
-
+@app.route('/fetch', methods=['GET, POST'])
 def fetch_data(BASE_URL, data):
+    data = request.get_json()
+    data = data.get('requests')
+    user_input = data.get('user_input')
     url = f"{BASE_URL}/ps_api/data_shop/Retrieve.php"
 
     # Si la donnée est une chaîne JSON (comme dans ton exemple), on la parse
@@ -292,19 +300,25 @@ def fetch_data(BASE_URL, data):
     try:
         response = requests.post(url, json=data, headers=headers)
         response.raise_for_status()
-        return response.json()
+        return jsonify({
+            'user_input': user_input,
+            'reponse': response.json()
+        })
     except requests.exceptions.RequestException as e:
         return {"success": False, "error": str(e)}
 
 
-
-def generate_final_answer(client, question, data, instructions):
+@app.route('/answer', methods=['POST'])
+def generate_final_answer():
+    data_request = request.get_json()
+    question = data_request.get('user_input')
+    data = data_request.get('reponse')
     prompt = f"Voici les données PrestaShop : {data}\nQuestion : {question}\nRéponds clairement."
     
     try:
         response = client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=f"System:{instructions}\nUtilisateur: {prompt}"
+            contents=f"System:{instructions_system_reponse}\nUtilisateur: {prompt}"
         )
 
         print(response.text)
@@ -314,32 +328,6 @@ def generate_final_answer(client, question, data, instructions):
     except Exception as e:
         print("❌ Erreur génération réponse LLM :", e)
         return "Erreur lors de la génération de la réponse."
-
-
-@app.route("/chatbot", methods=["POST"])
-def chatbot():
-    request_user = request.get_json()
-    user_input = request_user.get("input", "")
-
-    # user_input = request.form.get("input", "")
-
-    table_fields = tables_finder(client, instructions_system, user_input)
-
-    requetes = generate_sql(client, instructions_system_sql, table_fields, user_input)
-
-    php_response = fetch_data(BASE_URL, requetes)
-    
-    reponseFinale = generate_final_answer(client, user_input, php_response, instructions_system_reponse)
-
-    # return jsonify({"reponses": {
-    #     "tables": table_fields,
-    #     "requetes": requetes,
-    #     "data_php": php_response,
-    #     "reponse_finale": reponseFinale
-    # }
-    # })
-
-    return jsonify({"reponses": reponseFinale})
 
 @app.errorhandler(500)
 def internal_error(error):
