@@ -318,10 +318,10 @@ def generate_final_answer(client, question, data, instructions):
 
 @app.route("/chatbot", methods=["POST"])
 def chatbot():
-    # request_user = request.get_json()
-    # user_input = request_user.get("input", "")
+    request_user = request.get_json()
+    user_input = request_user.get("input", "")
 
-    user_input = request.form.get("input", "")
+    # user_input = request.form.get("input", "")
 
     table_fields = tables_finder(client, instructions_system, user_input)
 
